@@ -8,79 +8,90 @@ export default class Board extends Component {
         board: {
             width: 500,
             height: 500,
+            style: {
+                border: '10px solid #9f4acf',
+                borderRadius: '1px',
+                borderColor: 'aqua',
+                height: '520px'
+            }
         },
         snake: {
             x: 0,
             y: 0,
             size: 50,
-            color: 'blue'
+            color: 'blue',
+            move: 0
         },
     }
     componentDidMount() {
         window.addEventListener("keyup", this.calculateMovement)
     }
 
+    isValidMovement = (move) => {
+        const size = this.state.board.width - this.state.snake.size
+        if (move >= 0 && move <= size) {
+            return true
+        }
+    }
+
     calculateMovement = (event) => {
         const {snake} = this.state
-        console.log(snake)
         if (event.key == "ArrowUp") {
-            console.log("up")
-            snake.y = snake.y - snake.size
-            console.log(this.rect)
-            this.rect.to({
-                x : snake.x,
-                y: snake.y,
-                duration : 0.1,
-                onFinish: () => {
-                   console.log('finished');
-                }
-              });
-            return snake
+            snake.move = snake.y - snake.size
+            if (this.isValidMovement(snake.move)) {       
+                snake.y = snake.move
+                this.rect.to({
+                    x : snake.x,
+                    y: snake.y,
+                    duration : 0.1
+                });
+                console.log(snake)
+                return snake
+            }
+            return
         }
     
         if (event.key == "ArrowDown") {
-            console.log("down")
-            snake.y = snake.y + snake.size
-            console.log(snake)
-            this.rect.to({
-                x : snake.x,
-                y: snake.y,
-                duration : 0.1,
-                onFinish: () => {
-                   console.log('finished');
-                }
-              });
-            return snake
+            snake.move = snake.y + snake.size
+            if (this.isValidMovement(snake.move)) {
+                snake.y = snake.move
+                this.rect.to({
+                    x : snake.x,
+                    y: snake.y,
+                    duration : 0.1
+                });
+                console.log(snake)
+                return snake
+            }
+            return
         }
     
         if (event.key == "ArrowLeft") {
-            console.log("left")
-            snake.x = snake.x - snake.size
-            console.log(snake)
-            this.rect.to({
-                x : snake.x,
-                y: snake.y,
-                duration : 0.1,
-                onFinish: () => {
-                   console.log('finished');
-                }
-              });
-            return snake
+            snake.move = snake.x - snake.size
+            if (this.isValidMovement(snake.move)) {
+                snake.x = snake.move
+                this.rect.to({
+                    x : snake.x,
+                    y: snake.y,
+                    duration : 0.1
+                });
+                console.log(snake)
+                return snake
+            }
         }
     
         if (event.key == "ArrowRight") {
-            console.log("right")
-            snake.x = snake.x + snake.size
-            console.log(snake)
-            this.rect.to({
-                x : snake.x,
-                y: snake.y,
-                duration : 0.1,
-                onFinish: () => {
-                   console.log('finished');
-                }
-              });
-            return snake
+            snake.move = snake.x + snake.size
+            if (this.isValidMovement(snake.move)) {
+                snake.x = snake.move
+                this.rect.to({
+                    x : snake.x,
+                    y: snake.y,
+                    duration : 0.1
+                });
+                console.log(snake)
+                return snake
+            }
         }
         return
     }
@@ -89,7 +100,7 @@ export default class Board extends Component {
         const {snake, board} = this.state
         return(
             <div className="board">       
-                 <Stage width={board.width} height={board.height}>
+                 <Stage width={board.width} height={board.height} style={board.style} >
                     <Layer>
                         <Rect ref={node => (this.rect = node)}
                             x={snake.x}

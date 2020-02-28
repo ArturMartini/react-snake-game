@@ -1,9 +1,9 @@
 .board {
-    display: flex;
     padding: 1px;
-    height: 500px;
-    border: 10px solid #9f4acf;
-    border-radius: 1px;
+    height: 520px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .snake {
