@@ -25,7 +25,15 @@ export default class Board extends Component {
     }
     componentDidMount() {
         window.addEventListener("keyup", this.calculateMovement)
+        setInterval(this.snakeKeepWalking, 1000);
     }
+
+    snakeKeepWalking = () => {
+        console.log("walking")
+        this.state.snake.x = this.state.snake.x + this.state.snake.size
+        this.setState(this.state.snake)
+    }
+    
 
     isValidMovement = (move) => {
         const size = this.state.board.width - this.state.snake.size
@@ -33,6 +41,7 @@ export default class Board extends Component {
             return true
         }
     }
+    
 
     calculateMovement = (event) => {
         const {snake} = this.state
