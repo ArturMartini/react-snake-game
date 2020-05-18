@@ -151,7 +151,6 @@ export default class Board extends Component {
 
     checkKillPoint = (rects, moveRef) => {
         const { point } = this.state
-        console.log(rects)
         if (moveRef.x == point.x && moveRef.y == point.y) {
             rects.push({
                 x: point.x,
