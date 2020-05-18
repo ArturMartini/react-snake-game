@@ -9,9 +9,9 @@ const DirectionRight = 3
 const DirectionLeft = 4
 const size = 50
 
-
 export default class Board extends Component {
-    rect  = {};
+    rects = []
+    rect = {};
     rectPoint = {};
     state = {
         board: {
@@ -38,80 +38,138 @@ export default class Board extends Component {
             y: 300,
             size: size,
             color: 'black',
-        }
+        },
+        rects: this.initializeRects()
     }
+
+    initializeRects() {
+        return Array.from({ length: 1 }).map((_, i) => ({
+            x: 0,
+            y: 0,
+            active: true,
+            id: "rect:0",
+            direction: DirectionRight,
+            size: size,
+            color: 'blue',
+            lost: false
+        }))
+    }
+
     componentDidMount() {
-        window.addEventListener("keyup", this.calculateMovement)
-        setInterval(this.snakeKeepWalking, 1000);
+        window.addEventListener("keyup", this.getMovement)
+        setInterval(this.walker, 1000);
     }
 
-    snakeKeepWalking = () => {
-        const { snake, point, board } = this.state
+    walker = () => {
+        const { rects, point, board } = this.state
         var move = 0;
-        var isNotValidMove = false
+        var isValidMove = false
+        var leader = {
+            x: rects[rects.length - 1].x,
+            y: rects[rects.length - 1].y,
+            direction: rects[rects.length - 1].direction
+        }
+        var direction = leader.direction
 
-        if (DirectionRight == snake.direction) {
-            move = snake.x + snake.size
+        if (DirectionRight == leader.direction) {
+            move = leader.x + size
             if (this.isValidMovement(move)) {
-                snake.x = move
-            } else {
-                isNotValidMove = true
+                isValidMove = true
             }
         }
 
-        if (DirectionLeft == snake.direction) {
-            move = snake.x - snake.size
+        if (DirectionLeft == leader.direction) {
+            move = leader.x - size
             if (this.isValidMovement(move)) {
-                snake.x = move
-            } else {
-                isNotValidMove = true
+                isValidMove = true
             }
         }
 
-        if (DirectionUp == snake.direction) {
-            move = snake.y - snake.size
+        if (DirectionUp == leader.direction) {
+            move = leader.y - size
             if (this.isValidMovement(move)) {
-                snake.y = move
-            } else {
-                isNotValidMove = true
+                isValidMove = true
             }
         }
 
-        if (DirectionDown == snake.direction) {
-            move = snake.y + snake.size
+        if (DirectionDown == leader.direction) {
+            move = leader.y + size
             if (this.isValidMovement(move)) {
-                snake.y = move
-            } else {
-                isNotValidMove = true
+                isValidMove = true
             }
         }
 
-        if (!isNotValidMove) {
-            snake.lost = true
+        if (!isValidMove) {
+            rects[rects.length - 1].lost = true
         }
 
-        this.checkKillPoint(snake)
-        
-        this.state.snake = snake
-        this.setState(this.state.snake)
+        this.move(rects, direction)
+
+        this.state.rects = rects
+        this.setState(this.state.rects)
     }
 
-    checkKillPoint = (snake) => {
-        const {point} = this.state
-        console.log("check kill")
-        console.log("snake.y " + snake.y)
-        console.log("point.y " + point.y)
-        console.log("snake.x " + snake.x)
-        console.log("point.x " + point.x)
-         if (snake.x == point.x && snake.y == point.y) {
-             point.x = 100
-             point.y = 400
-             snake.size = snake.size + size
-         }
-         this.state.snake = snake
-         this.setState(this.state.snake)
+    move = (rects, direction) => {
+        var ref = {
+            x: rects[rects.length - 1].x,
+            y: rects[rects.length - 1].y,
+            direction: rects[rects.length - 1].direction,
+            color: "blue",
+        }
+
+        if (DirectionUp == direction) {
+            ref.y -= size
+        }
+        if (DirectionDown == direction) {
+            ref.y += size
+        }
+        if (DirectionRight == direction) {
+            ref.x += size
+        }
+        if (DirectionLeft == direction) {
+            ref.x -= size
+        }
+        var hasPoint = this.checkKillPoint(rects, ref)
+        if (hasPoint) {
+            console.log("kill!!")
+        } else {
+            if (rects.length > 1) {
+                for (let idx = rects.length - 1; idx > 0; idx--) {
+                    rects[idx - 1].x = rects[idx].x
+                    rects[idx - 1].y = rects[idx].y
+                }
+            }
+            rects[rects.length - 1] = {
+                x: ref.x,
+                y: ref.y,
+                direction: ref.direction,
+                id: rects[rects.length - 1].id,
+                color: "blue"
+            }
+        }
     }
-    
+
+    checkKillPoint = (rects, moveRef) => {
+        const { point } = this.state
+        console.log(rects)
+        if (moveRef.x == point.x && moveRef.y == point.y) {
+            rects.push({
+                x: point.x,
+                y: point.y,
+                direction: moveRef.direction,
+                active: true,
+                color: "blue",
+                size: size,
+                id: "rect:" + (rects.length)
+            })
+            var newPoint = this.getRandomPosition(point)
+            point.x = newPoint.x
+            point.y = newPoint.y
+            return true
+        }
+        return false
+    }
+
 
     isValidMovement = (move) => {
         const size = this.state.board.width - this.state.snake.size
@@ -120,95 +178,81 @@ export default class Board extends Component {
         }
         return false
     }
-    
 
-    calculateMovement = (event) => {
-        const {snake} = this.state
+
+    getMovement = (event) => {
+        var dir = 0
         if (event.key == "ArrowUp") {
-            snake.direction = DirectionUp
-            snake.move = snake.y - snake.size
-            if (this.isValidMovement(snake.move)) {       
-                snake.y = snake.move
-                this.rect.to({
-                    x : snake.x,
-                    y: snake.y,
-                    duration : 0.1,
-                });
-                console.log(snake)
-                return snake
-            }
-            return
+            dir = DirectionUp
         }
-    
+
         if (event.key == "ArrowDown") {
-            snake.direction = DirectionDown
-            snake.move = snake.y + snake.size
-            if (this.isValidMovement(snake.move)) {
-                snake.y = snake.move
-                this.rect.to({
-                    x : snake.x,
-                    y: snake.y,
-                    duration : 0.1
-                });
-                console.log(snake)
-                return snake
-            }
-            return
+            dir = DirectionDown
         }
-    
+
         if (event.key == "ArrowLeft") {
-            snake.direction = DirectionLeft
-            snake.move = snake.x - snake.size
-            if (this.isValidMovement(snake.move)) {
-                snake.x = snake.move
-                this.rect.to({
-                    x : snake.x,
-                    y: snake.y,
-                    duration : 0.1
-                });
-                console.log(snake)
-                return snake
-            }
+            dir = DirectionLeft
         }
-    
+
         if (event.key == "ArrowRight") {
-            snake.direction = DirectionRight
-            snake.move = snake.x + snake.size
-            if (this.isValidMovement(snake.move)) {
-                snake.x = snake.move
-                this.rect.to({
-                    x : snake.x,
-                    y: snake.y,
-                    duration : 0.1
-                });
-                console.log(snake)
-                return snake
+            dir = DirectionRight
+        }
+        this.state.rects[this.state.rects.length - 1].direction = dir
+        return this.state.rects
+    }
+
+    getRandomPosition = (point) => {
+        var isInvalid = true
+        var x = 0
+        var y = 0
+        while (isInvalid) {
+            x = (Math.floor(Math.random() * 10) + 0) * 50
+            y = (Math.floor(Math.random() * 10) + 0) * 50
+            this.state.rects.forEach((rect) => {
+                if (x != rect.x && y != rect.y) {
+                    isInvalid = false
+                }
+            });
+
+            if (x != point.x && y != point.y) {
+                isInvalid = false
+            } else {
+                isInvalid = true
             }
         }
-        return
+        return {
+            x: x,
+            y: y,
+        };
     }
 
     render() {
-        const {snake, point, board} = this.state
-        return(
-            <div className="board">       
-                 <Stage width={board.width} height={board.height} style={board.style} >
+        const { point, board, rects } = this.state
+        return (
+            <div className="board">
+                <Stage width={board.width} height={board.height} style={board.style} >
                     <Layer>
-                    <Rect ref={node => (this.rectPoint = node)}
+                        {rects.map((rect) => {
+                            return (
+                                <Rect ref={node => (this.rects[rects.length - 1] = node)}
+                                    key={`${rect.id}`}
+                                    x={rect.x}
+                                    y={rect.y}
+                                    width={size}
+                                    height={size}
+                                    fill="blue"
+                                    shadowBlur={5}
+                                />
+                            )
+                        })}
+                        <Rect ref={node => (this.rectPoint = node)}
                             x={point.x}
                             y={point.y}
                             width={point.size}
                             height={point.size}
                             fill={point.color}
                             shadowBlur={5}
-                        />
-                        <Rect ref={node => (this.rect = node)}
-                            x={snake.x}
-                            y={snake.y}
-                            width={snake.size}
-                            height={size}
-                            fill={snake.color}
-                            shadowBlur={5}
+                            name="point"
                         />
                     </Layer>
                 </Stage>
