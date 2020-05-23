@@ -13,6 +13,9 @@ export default class Board extends Component {
     rects = []
     rect = {};
     rectPoint = {};
+    active = true
+    interval = -1
+    timeInterval = 1000
     state = {
         board: {
             width: 500,
@@ -57,13 +60,14 @@ export default class Board extends Component {
 
     componentDidMount() {
         window.addEventListener("keyup", this.getMovement)
-        setInterval(this.walker, 1000);
+        this.interval = setInterval(this.walker, this.timeInterval)
     }
 
     walker = () => {
-        const { rects, point, board } = this.state
+        const { rects } = this.state
         var move = 0;
-        var isValidMove = false
+        var isInvalidMove = false
+        var isLostMove = false
         var leader = {
             x: rects[rects.length - 1].x,
             y: rects[rects.length - 1].y,
@@ -71,41 +75,39 @@ export default class Board extends Component {
         }
         var direction = leader.direction
 
-        if (DirectionRight == leader.direction) {
+        if (DirectionRight === leader.direction) {
             move = leader.x + size
-            if (this.isValidMovement(move)) {
-                isValidMove = true
+            if (this.isLostMovement(move) || this.isInvalidMovement(move, leader.y)) {
+                isLostMove = true
             }
         }
 
-        if (DirectionLeft == leader.direction) {
+        if (DirectionLeft === leader.direction) {
             move = leader.x - size
-            if (this.isValidMovement(move)) {
-                isValidMove = true
+            if (this.isLostMovement(move) || this.isInvalidMovement(move, leader.y)) {
+                isLostMove = true
             }
         }
 
-        if (DirectionUp == leader.direction) {
+        if (DirectionUp === leader.direction) {
             move = leader.y - size
-            if (this.isValidMovement(move)) {
-                isValidMove = true
+            if (this.isLostMovement(move) || this.isInvalidMovement(leader.x, move)) {
+                isLostMove = true
             }
         }
 
-        if (DirectionDown == leader.direction) {
+        if (DirectionDown === leader.direction) {
             move = leader.y + size
-            if (this.isValidMovement(move)) {
-                isValidMove = true
+            if (this.isLostMovement(move) || this.isInvalidMovement(leader.x, move)) {
+                isLostMove = true
             }
         }
 
-        if (!isValidMove) {
-            rects[rects.length - 1].lost = true
+        if (isLostMove) {
+            this.active = false
         }
 
         this.move(rects, direction)
-
-        this.state.rects = rects
         this.setState(this.state.rects)
     }
 
@@ -116,27 +118,33 @@ export default class Board extends Component {
             direction: rects[rects.length - 1].direction,
             color: "blue",
         }
+        var stateRects = []
 
-        if (DirectionUp == direction) {
+        rects.forEach((r) => {
+            stateRects.push({
+                x: r.x,
+                y: r.y
+            })
+        })
+
+        if (DirectionUp === direction) {
             ref.y -= size
         }
-        if (DirectionDown == direction) {
+        if (DirectionDown === direction) {
             ref.y += size
         }
-        if (DirectionRight == direction) {
+        if (DirectionRight === direction) {
             ref.x += size
         }
-        if (DirectionLeft == direction) {
+        if (DirectionLeft === direction) {
             ref.x -= size
         }
         var hasPoint = this.checkKillPoint(rects, ref)
-        if (hasPoint) {
-            console.log("kill!!")
-        } else {
+        if (!hasPoint) {
             if (rects.length > 1) {
                 for (let idx = rects.length - 1; idx > 0; idx--) {
-                    rects[idx - 1].x = rects[idx].x
-                    rects[idx - 1].y = rects[idx].y
+                    rects[idx - 1].x = stateRects[idx].x
+                    rects[idx - 1].y = stateRects[idx].y
                 }
             }
             rects[rects.length - 1] = {
@@ -146,12 +154,14 @@ export default class Board extends Component {
                 id: rects[rects.length - 1].id,
                 color: "blue"
             }
+        } else {
+            return
         }
     }
 
     checkKillPoint = (rects, moveRef) => {
         const { point } = this.state
-        if (moveRef.x == point.x && moveRef.y == point.y) {
+        if (moveRef.x === point.x && moveRef.y === point.y) {
             rects.push({
                 x: point.x,
                 y: point.y,
@@ -164,40 +174,55 @@ export default class Board extends Component {
             var newPoint = this.getRandomPosition(point)
             point.x = newPoint.x
             point.y = newPoint.y
+            clearInterval(this.interval)
+            this.timeInterval = this.timeInterval * 0.95
+            this.interval = setInterval(this.walker, this.timeInterval)
             return true
         }
         return false
     }
 
 
-    isValidMovement = (move) => {
+    isLostMovement = (move) => {
         const size = this.state.board.width - this.state.snake.size
         if (move >= 0 && move <= size) {
-            return true
+            return false
         }
-        return false
+        return true
+    }
+
+    isInvalidMovement = (x, y) => {
+        const { rects } = this.state
+        var invalid = false
+        rects.forEach((r) => {
+            if (x === r.x && y === r.y) {
+                invalid = true
+            }
+        })
+        return invalid
     }
 
 
     getMovement = (event) => {
+        const { rects } = this.state
         var dir = 0
-        if (event.key == "ArrowUp") {
+        if (event.key === "ArrowUp") {
             dir = DirectionUp
         }
 
-        if (event.key == "ArrowDown") {
+        if (event.key === "ArrowDown") {
             dir = DirectionDown
         }
 
-        if (event.key == "ArrowLeft") {
+        if (event.key === "ArrowLeft") {
             dir = DirectionLeft
         }
 
-        if (event.key == "ArrowRight") {
+        if (event.key === "ArrowRight") {
             dir = DirectionRight
         }
-        this.state.rects[this.state.rects.length - 1].direction = dir
-        return this.state.rects
+        rects[rects.length - 1].direction = dir
+        return rects
     }
 
     getRandomPosition = (point) => {
@@ -208,12 +233,12 @@ export default class Board extends Component {
             x = (Math.floor(Math.random() * 10) + 0) * 50
             y = (Math.floor(Math.random() * 10) + 0) * 50
             this.state.rects.forEach((rect) => {
-                if (x != rect.x && y != rect.y) {
+                if (x !== rect.x && y !== rect.y) {
                     isInvalid = false
                 }
             });
 
-            if (x != point.x && y != point.y) {
+            if (x !== point.x && y !== point.y) {
                 isInvalid = false
             } else {
                 isInvalid = true
@@ -227,35 +252,43 @@ export default class Board extends Component {
 
     render() {
         const { point, board, rects } = this.state
-        return (
-            <div className="board">
-                <Stage width={board.width} height={board.height} style={board.style} >
-                    <Layer>
-                        {rects.map((rect) => {
-                            return (
-                                <Rect ref={node => (this.rects[rects.length - 1] = node)}
-                                    key={`${rect.id}`}
-                                    x={rect.x}
-                                    y={rect.y}
-                                    width={size}
-                                    height={size}
-                                    fill="blue"
-                                    shadowBlur={5}
-                                />
-                            )
-                        })}
-                        <Rect ref={node => (this.rectPoint = node)}
-                            x={point.x}
-                            y={point.y}
-                            width={point.size}
-                            height={point.size}
-                            fill={point.color}
-                            shadowBlur={5}
-                            name="point"
-                        />
-                    </Layer>
-                </Stage>
-            </div>
-        );
+        if (this.active === true) {
+            return (
+                <div className="board">
+                    <Stage width={board.width} height={board.height} style={board.style} >
+                        <Layer>
+                            {rects.map((rect) => {
+                                return (
+                                    <Rect ref={node => (this.rects[rects.length - 1] = node)}
+                                        key={`${rect.id}`}
+                                        x={rect.x}
+                                        y={rect.y}
+                                        width={size}
+                                        height={size}
+                                        fill="blue"
+                                        shadowBlur={5}
+                                    />
+                                )
+                            })}
+                            <Rect ref={node => (this.rectPoint = node)}
+                                x={point.x}
+                                y={point.y}
+                                width={point.size}
+                                height={point.size}
+                                fill={point.color}
+                                shadowBlur={5}
+                                name="point"
+                            />
+                        </Layer>
+                    </Stage>
+                </div>
+            );
+        } else {
+            return (
+                <div className="board">
+                    <p style={{ fontSize: 100 }}>YOU LOST!</p>
+                </div>
+            )
+        }
     }
 }
