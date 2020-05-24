@@ -16,6 +16,7 @@ export default class Board extends Component {
     active = true
     interval = -1
     timeInterval = 1000
+    killPoints = 0
     state = {
         board: {
             width: 500,
@@ -59,14 +60,13 @@ export default class Board extends Component {
     }
 
     componentDidMount() {
-        window.addEventListener("keyup", this.getMovement)
+        window.addEventListener("keydown", this.getMovement)
         this.interval = setInterval(this.walker, this.timeInterval)
     }
 
     walker = () => {
         const { rects } = this.state
         var move = 0;
-        var isInvalidMove = false
         var isLostMove = false
         var leader = {
             x: rects[rects.length - 1].x,
@@ -162,6 +162,7 @@ export default class Board extends Component {
     checkKillPoint = (rects, moveRef) => {
         const { point } = this.state
         if (moveRef.x === point.x && moveRef.y === point.y) {
+            this.killPoints += 1
             rects.push({
                 x: point.x,
                 y: point.y,
@@ -171,7 +172,7 @@ export default class Board extends Component {
                 size: size,
                 id: "rect:" + (rects.length)
             })
-            var newPoint = this.getRandomPosition(point)
+            var newPoint = this.getRandomPosition(rects, point)
             point.x = newPoint.x
             point.y = newPoint.y
             clearInterval(this.interval)
@@ -208,32 +209,28 @@ export default class Board extends Component {
         var dir = 0
         if (event.key === "ArrowUp") {
             dir = DirectionUp
-        }
-
-        if (event.key === "ArrowDown") {
+        } else if (event.key === "ArrowDown") {
             dir = DirectionDown
-        }
-
-        if (event.key === "ArrowLeft") {
+        } else if (event.key === "ArrowLeft") {
             dir = DirectionLeft
-        }
-
-        if (event.key === "ArrowRight") {
+        } else if (event.key === "ArrowRight") {
             dir = DirectionRight
+        } else {
+            return
         }
         rects[rects.length - 1].direction = dir
         return rects
     }
 
-    getRandomPosition = (point) => {
+    getRandomPosition = (rects, point) => {
         var isInvalid = true
         var x = 0
         var y = 0
         while (isInvalid) {
-            x = (Math.floor(Math.random() * 10) + 0) * 50
-            y = (Math.floor(Math.random() * 10) + 0) * 50
-            this.state.rects.forEach((rect) => {
-                if (x !== rect.x && y !== rect.y) {
+            x = (Math.floor(Math.random() * 10)) * 50
+            y = (Math.floor(Math.random() * 10)) * 50
+            rects.forEach((r) => {                
+                if (x !== r.x && y !== r.y) {
                     isInvalid = false
                 }
             });
@@ -255,6 +252,7 @@ export default class Board extends Component {
         if (this.active === true) {
             return (
                 <div className="board">
+                    <div className="scoreboard">{this.killPoints}</div>
                     <Stage width={board.width} height={board.height} style={board.style} >
                         <Layer>
                             {rects.map((rect) => {
